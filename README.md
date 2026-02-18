@@ -4,6 +4,8 @@ In this repository, the ACMG rules are provided for **educational purposes only*
 The HTML content was generated using **ChatGPT**.  
 These materials are **not intended for clinical or diagnostic use**.
 
+<img width="1538" height="756" alt="image" src="https://github.com/user-attachments/assets/cf2b327a-bb1f-435c-bba8-e9bd74d14b7d"/>
+
 ## References
 
 1. **ACMG 2015**  
