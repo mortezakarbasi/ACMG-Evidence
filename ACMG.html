@@ -1,0 +1,725 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ACMG Evidence Matrix (Clickable Cells)</title>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:rgba(255,255,255,.06);
+      --border:rgba(255,255,255,.14);
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.72);
+      
+      --pvs:#ff0404; /* Very strong */
+      --ps:#e25656;  /* Strong */
+      --pm:#f59e0b;  /* Moderate */
+      --pp:#22c55e;  /* Supporting */
+      
+      --ba:#38bdf8;  /* Stand-alone benign */
+      --bs:#61a6fa;  /* Strong benign */
+      --bp:#84bafc;  /* Supporting benign */
+      
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background: radial-gradient(1200px 700px at 20% 0%, rgba(139,92,246,0.18), transparent 55%),
+                  radial-gradient(1100px 700px at 80% 10%, rgba(56,189,248,0.14), transparent 60%),
+                  linear-gradient(180deg, #0b1220, #070b14 70%);
+      color:var(--text);
+      padding:24px 14px 48px;
+    }
+
+    .wrap{max-width:1100px;margin:0 auto}
+    h1{margin:0 0 6px;font-size:clamp(20px,2.2vw,32px)}
+    .sub{margin:0 0 16px;color:var(--muted);font-size:14px;line-height:1.45}
+
+    .table-card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:18px;
+      overflow:hidden;
+      box-shadow: 0 18px 34px rgba(0,0,0,.35);
+      backdrop-filter: blur(10px);
+    }
+
+    .table-wrap{overflow:auto}
+    table{
+      width:100%;
+      min-width:980px;
+      border-collapse:collapse;
+    }
+    thead th{
+      background:rgba(255,255,255,.03);
+      color:rgba(255,255,255,.78);
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:.8px;
+      padding:12px 10px;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      position:sticky; top:0; z-index:1;
+    }
+    tbody th{
+      background:rgba(255,255,255,.02);
+      color:rgba(255,255,255,.80);
+      font-size:12px;
+      letter-spacing:.4px;
+      padding:12px 10px;
+      border-right:1px solid rgba(255,255,255,.10);
+      border-bottom:1px solid rgba(255,255,255,.10);
+      position:sticky; left:0; z-index:1;
+      min-width:170px;
+    }
+    td{
+      border-bottom:1px solid rgba(255,255,255,.10);
+      border-right:1px solid rgba(255,255,255,.08);
+      padding:0;
+      height:112px;
+      width:150px;
+      background:rgba(255,255,255,.01);
+    }
+
+    /* clickable cell button */
+    .cell{
+      width:100%;
+      height:112px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      gap:8px;
+      padding:10px;
+      background:transparent;
+      border:none;
+      cursor:pointer;
+      text-align:left;
+      color:var(--text);
+      outline:none;
+      position:relative;
+    }
+    .cell:hover{background:rgba(255,255,255,.03)}
+    .cell:focus-visible{
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,.35);
+      border-radius:10px;
+    }
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      font-size:12px;
+      font-weight:700;
+      letter-spacing:.2px;
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.12);
+      width:max-content;
+      color:var(--muted);
+    }
+    .dot{width:8px;height:8px;border-radius:999px;background:currentColor}
+    .preview{
+      font-size:12px;
+      line-height:1.35;
+      color:rgba(255,255,255,.78);
+      display:-webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow:hidden;
+    }
+
+    /* color themes */
+    .pvs{color:var(--pvs)}
+    .ps{color:var(--ps)}
+    .pm{color:var(--pm)}
+    .pp{color:var(--pp)}
+    .ba{color:var(--ba)}
+    .bs{color:var(--bs)}
+    .bp{color:var(--bp)}
+
+    /* modal */
+    .modal-backdrop{
+      position:fixed; inset:0;
+      background:rgba(0,0,0,.60);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      z-index:999;
+    }
+    .modal-backdrop.open{display:flex}
+
+    .modal{
+      width:min(880px, 100%);
+      background: rgba(12,18,33,.92);
+      border:1px solid rgba(255,255,255,.16);
+      border-radius:18px;
+      box-shadow: 0 28px 70px rgba(0,0,0,.55);
+      overflow:hidden;
+      backdrop-filter: blur(12px);
+      transform: translateY(6px);
+    }
+    .modal-head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      padding:14px 14px 10px;
+      border-bottom:1px solid rgba(255,255,255,.10);
+    }
+    .modal-title{
+      margin:0;
+      font-size:16px;
+      line-height:1.2;
+    }
+    .meta{
+      margin-top:6px;
+      color:var(--muted);
+      font-size:13px;
+    }
+    .close{
+      border:none;
+      background:rgba(255,255,255,.06);
+      color:var(--text);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:12px;
+      padding:8px 10px;
+      cursor:pointer;
+      font-weight:700;
+    }
+    .close:hover{background:rgba(255,255,255,.10)}
+
+    .modal-body{
+      padding:14px;
+    }
+    .big-tag{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      font-size:13px;
+      font-weight:800;
+      padding:8px 12px;
+      border-radius:999px;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.12);
+      width:max-content;
+      margin-bottom:10px;
+      color:var(--muted);
+    }
+    .big-tag .dot{width:10px;height:10px}
+    .fulltext{
+      white-space:pre-wrap;
+      font-size:14px;
+      line-height:1.55;
+      color:rgba(255,255,255,.88);
+      margin:0;
+    }
+
+    .hint{
+      padding:12px 14px 14px;
+      border-top:1px solid rgba(255,255,255,.10);
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.45;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>ACMG Evidence Matrix (28 rules)</h1>
+    <p class="sub">Click any square to enlarge it and read the full text. (ESC or click outside to close.)</p>
+
+    <div class="table-card">
+      <div class="table-wrap">
+        <table aria-label="ACMG evidence matrix">
+          <thead>
+            <tr>
+              <th>Evidence Type</th>
+              <th>Stand-alone (BA)</th>
+              <th>Strong (BS)</th>
+              <th>Supporting (BP)</th>
+              <th>Supporting (PP)</th>
+              <th>Moderate (PM)</th>
+              <th>Strong (PS)</th>
+              <th>Very Strong (PV)</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr>
+              <th>Population data</th>
+
+              <td>
+                <button class="cell" data-strength="BA" data-code="BA1" data-theme="ba"
+                  data-row="Population" data-col="Stand-alone (Benign)"
+                  data-text="BA1: mean allele frequency of a variant is >5%, that is considered stand-alone support, resulting in an automatic ‘Benign’ classification.">
+                  <span class="tag ba"><span class="dot"></span>BA1</span>
+                  <span class="preview">mean allele frequency of a variant is >5%...</span>
+                </button>
+              </td>
+              
+              <td>
+                <button class="cell" data-strength="BS" data-code="BS1" data-theme="bs"
+                  data-row="Population" data-col="Strong (Benign)"
+                  data-text="BS1: Allele frequency is greater than expected for the disorder (given prevalence, penetrance, and genetic heterogeneity).">
+                  <span class="tag bs"><span class="dot"></span>BS1</span>
+                  <span class="preview">Allele frequency is greater than…</span>
+                </button>
+                <button class="cell" data-strength="BS" data-code="BS2" data-theme="bs"
+                  data-row="Population" data-col="Strong (Benign)"
+                  data-text="BS2: For a condition that is fully penetrant at an early age, if the variant is observed in a healthy adult individual.">
+                  <span class="tag bs"><span class="dot"></span>BS2</span>
+                  <span class="preview">For a condition that is fully penetrant…</span>
+                </button>
+              </td>
+
+              <td></td>
+
+              <td></td>
+
+              <td>
+              <button class="cell" data-strength="PM" data-code="PM2" data-theme="pm"
+                  data-row="Population" data-col="Moderate"
+                  data-text="PM2: Absent from controls (or at extremely low frequency) in population databases, consistent with disease prevalence/penetrance.">
+                  <span class="tag pm"><span class="dot"></span>PM2</span>
+                  <span class="preview">Absent/very rare in population databases…</span>
+                </button>
+              </td>
+
+              <td>
+                <button class="cell" data-strength="PS" data-code="PS4" data-theme="ps"
+                  data-row="Other" data-col="Strong"
+                  data-text="PS4: The prevalence of the variant in affected individuals is significantly increased compared with the prevalence in controls.">
+                  <span class="tag ps"><span class="dot"></span>PS4</span>
+                  <span class="preview">The prevalence of the variant in affected individuals…</span>
+                </button>
+              </td>
+
+              <td>
+              </td>
+            </tr>
+
+            <tr>
+              <th>Computational and predictive tools</th>
+
+              <td></td>
+              <td></td>
+
+              <td>
+                <button class="cell" data-strength="BP" data-code="BP4" data-theme="bp"
+                  data-row="Computational" data-col="Supporting (Benign)"
+                  data-text="BP4: Multiple computational tools suggest no impact on gene/gene product (benign prediction).">
+                  <span class="tag bp"><span class="dot"></span>BP4</span>
+                  <span class="preview">Multiple predictors support benign impact…</span>
+                </button>
+                <button class="cell" data-strength="BP" data-code="BP1" data-theme="bp"
+                  data-row="Computational" data-col="Supporting (Benign)"
+                  data-text="BP1: Missense in gene where only truncating cause disease. For example, truncating variants in ASPM or FAP are the primary type of pathogenic variant in this gene, which causes autosomal recessive primary microcephaly, and the gene has a high rate of missense polymorphic variants. Therefore missense variants in ASPM can be considered to have this line of supporting evidence for a benign impact.">
+                  <span class="tag bp"><span class="dot"></span>BP1</span>
+                  <span class="preview">Missense in gene where …</span>
+                </button>
+                <button class="cell" data-strength="BP" data-code="BP7" data-theme="bp"
+                  data-row="Computational" data-col="Supporting (Benign)"
+                  data-text="BP7: A synonymous (silent) variant for which splicing prediction tools indicate no impact and the nucleotide is not highly conserved.">
+                  <span class="tag bp"><span class="dot"></span>BP7</span>
+                  <span class="preview">Synonymous with no predicted splice impact…</span>
+                </button>
+                <button class="cell" data-strength="BP" data-code="BP3" data-theme="bp"
+                  data-row="Computational" data-col="Supporting (Benign)"
+                  data-text="BP3: In-frame deletions/insertions in a repetitive region without a known function.">
+                  <span class="tag bp"><span class="dot"></span>BP3</span>
+                  <span class="preview">In-frame deletions/insertions in a repetitive region without a known function</span>
+                </button>
+              </td>
+
+              <td>
+                <button class="cell" data-strength="PP" data-code="PP3" data-theme="pp"
+                  data-row="Computational" data-col="Supporting"
+                  data-text="PP3: Multiple computational tools support a deleterious effect on the gene or gene product (conservation, splice impact, protein effect).
+Caveat :
+• In-silico predictions are primarily useful in amino acid substitutions or missense variants.  
+• Informative also for splicing/intronic variation.
+• Do not generalize, missense variant can also have splicing effects, particularly at the start or end of an exon. 
+                  ">
+                  <span class="tag pp"><span class="dot"></span>PP3</span>
+                  <span class="preview">Multiple in silico predictors support damage…</span>
+                </button>
+              </td>
+
+              <td>
+                <button class="cell" data-strength="PM" data-code="PM5" data-theme="pm"
+                  data-row="Computational" data-col="Moderate"
+                  data-text="PM5: Missense change at an amino acid residue where a different missense change previously established as pathogenic
+ACMG guideline Example : Arg156His is pathogenic; now you observe Arg156Cys
+Variant of interest : MLH1:c.1038G>T (p.Gln346His) (p.Q346H) 
+Exmaple for Clinvar : MLH:c.1037A>G (p.Gln346Arg) (p.Q346R)
+Caveat: Beware of changes that impact splicing rather than at the amino acid/protein level.
+PS1 and PM5 is typically used in clinical laboratories if the ClinVar submission has a “review status” of  2 stars or multiple submitters of P and LP interpretations without any conflicts or 3 stars expert panel. 
+                  ">
+                  <span class="tag pm"><span class="dot"></span>PM5</span>
+                  <span class="preview">Same amino-acid change as known pathogenic…</span>
+                </button>
+                <button class="cell" data-strength="PM" data-code="PM4" data-theme="pm"
+                  data-row="Computational" data-col="Moderate"
+                  data-text="PM4: Protein length changes as a result of in-frame deletions/insertions in a nonrepeat region or stop-loss variants. 
+Example of Inframe variant : NM_000179.3(MSH6):c.535_546del p.(Ala179_Ala182del)
+Exmpale of Stop-loss variant : NM_000059.3(BRCA2): c.10256_10257insT p.(*3419Tyrext*18) 
+• Note: (update)
+• Downgraded from moderate to  supporting is the protein length  change is a single amino acid  
+• PM4 can also be used instead of  PVS1 for stop loss variants with
+TIPs to consider about Stop-loss variants:
+• If a frameshift occurs that causes loss of the stop codon and does not result in a termination codon in the 3’UTR, NMD is predicted to occur.
+• If a variant removes the original stop codon but results in a stop codon in the 3’UTR, the normal sequence is retained and an extended protein may be produced. This may be functional.
+• If a frameshift variant occurs that causes loss of the stop codon and results in a termination codon in the 3’UTR, (i.e. producing a protein that is both altered due to the frameshift and extended) and NMD is not predicted to occur, then assess the functional significance of the altered region and the proportion of the protein affected.
+                  ">
+                  <span class="tag pm"><span class="dot"></span>PM4</span>
+                  <span class="preview">Protein length changes as a result of in-frame deletions/insertions</span>
+                </button>
+              </td>
+              <td>
+                 <button class="cell" data-strength="PS" data-code="PS1" data-theme="ps"
+                  data-row="Computational" data-col="Strong"
+                  data-text="Same amino acid change as a previously established pathogenic variant regardless of nucleotide change
+ACMG guideline Example : Val→Leu caused by either G>C or G>T in the same codon.
+Variant of interest : MLH1:c.1038G>T (p.Gln346His) (p.Q346H)
+Exmaple for Clinvar : MLH1:c.1038G> (p.Gln346His) (p.Q346H) 
+Caveat: Beware of changes that impact splicing rather than at the amino acid/protein level.
+• PS1_moderate: Can be used for initiation codons where a  different nucleotide substitution affecting the same initiation  codon has been classified as (likely) pathogenic
+• PS1_supporting: Can be used for splice variants where a  different nucleotide substitution has been classified as (likely)  pathogenic and the in silico tools support a deleterious effect  on splicing
+• PS1 and PM5 is typically used in clinical laboratories if the ClinVar submission has a “review status” of  2 stars or multiple submitters of P and LP interpretations without any conflicts or 3 stars expert panel. 
+                  ">
+                  <span class="tag ps"><span class="dot"></span>PS1</span>
+                  <span class="preview">same amino acid change as pathogenic variant</span>
+                </button>
+              </td>
+              <td>
+                 <button class="cell" data-strength="PVS" data-code="PVS1" data-theme="pvs"
+                  data-row="Computational" data-col="Very Strong"
+                  data-text="PVS1: Null variant (nonsense, frameshift, canonical ±1/2 splice, initiation codon, single/multiexon deletion) in a gene where loss of function is a known mechanism of disease. 
+Types of null variants :
+Frame shift --> c.2019delA, p.Glu673Aspfs*28
+Canonical splice sites --> c.234+2G>A p.?
+Nonsense / “stop gain” --> c.1501 A > T, p.K501Ter
+Single, multi-exon or gene deletions
+
+How to serach for LOF mechanism of Disease?
+1. Clingen search --> check for HI score 
+2. PLi in gnomAD. Pli > 0.9
+Caveats: 
+variants at the extreme 3′ end of a gene. NMD-escape can occur. 
+Splicing variants can lead to “exon skipping” which could lead to an in-frame deletion. 
+Multiple transcripts – always check the exon is present across all transcripts and leads to the same 
+
+TIPS about start-loss and Stop-gain first 100 bp.
+• Start-loss variants: a variant that alters the start codon is likely to be null, but check if a different functional transcript exists that uses a different start codon, which may compensate.
+• Stop-gain variants within the first 100 bp of the first exon: in this case, NMD is likely to be evaded(escaped). Assess whether the truncated protein is likely to be functional.
+• Exon deletions that are in frame, or essential splice site variants where the reading frame is preserved may result in a functional protein and should be assessed individually with care.
+">
+                  <span class="tag pvs"><span class="dot"></span>PVS1</span>
+                  <span class="preview">predicted null variants in LOF genes</span>
+                </button>
+              </td>
+            </tr>
+
+            <tr>
+              <th>Functional data</th>
+
+              <td></td>
+
+              <td>
+                <button class="cell" data-strength="BS" data-code="BS3" data-theme="bs"
+                  data-row="Functional" data-col="Strong (Benign)"
+                  data-text="BS3: Well-established functional studies show no damaging effect on protein function or splicing.">
+                  <span class="tag bs"><span class="dot"></span>BS3</span>
+                  <span class="preview">Functional assays show normal function…</span>
+                </button>
+              </td>
+
+              <td></td>
+
+              <td>
+                <button class="cell" data-strength="PP" data-code="PP2" data-theme="pp"
+                  data-row="Functional" data-col="Moderate"
+                  data-text="PP2: Missense variant in a gene that has a low rate of benign missense variation and in which missense variants are a common mechanism of disease. (defined in gnomAD as a Z score >3.09)
+• Missense Intolerance / Constraint Metrics 
+• PP2 vs BP1
+                  ">
+                  <span class="tag pp"><span class="dot"></span>PP2</span>
+                  <span class="preview">Missense in gene with low rate of benign missense variants and path. missenses common…</span>
+                </button>
+              </td>
+
+              <td>
+                <button class="cell" data-strength="PM" data-code="PM1" data-theme="pm"
+                  data-row="Functional" data-col="Moderate"
+                  data-text="PM1: Located in a mutational hot spot and/or critical functional domain (without benign variation).
+• Note (update from ACGS:)
+• May be upgraded to Strong for variants affecting certain very specific residues that are known to be critical to protein structure or function e.g. variants in the triple helical domain of COL1A1 where glycine substitutions are known to affect the protein structure.3 May be downgraded to Supporting for variants in the functional domain of a gene with some (a very low level) of benign missense variation (or kept at moderate if the gene is recessive).                  
+                  ">
+                  <span class="tag pm"><span class="dot"></span>PM1</span>
+                  <span class="preview">Hotspot / critical domain with few benign variants…</span>
+                </button>
+              </td>
+
+              <td>
+                <button class="cell" data-strength="PS" data-code="PS3" data-theme="ps"
+                  data-row="Functional" data-col="Strong"
+                  data-text="PS3: Well-established functional studies show a damaging effect on the gene or gene product.">
+                  <span class="tag ps"><span class="dot"></span>PS3</span>
+                  <span class="preview">Strong functional evidence of damage…</span>
+                </button>
+              </td>
+
+              <td></td>
+            </tr>
+
+            <tr>
+              <th>Segregation data</th>
+
+              <td></td>
+              <td>
+                <button class="cell" data-strength="BS" data-code="BS4" data-theme="bs"
+                  data-row="Segregation" data-col="Strong (Benign)"
+                  data-text="BS4: Lack of segregation in affected members of a family (taking phenocopies/reduced penetrance into account).
+Caveat:
+The presence of phenocopies for common phenotypes (i.e., cancer, epilepsy) can mimic lack of segregation among affected individuals. Also, families may have more than one pathogenic variant contributing to an autosomal dominant disorder, further confounding an apparent lack of segregation.                  
+                  ">
+                  <span class="tag bs"><span class="dot"></span>BS4</span>
+                  <span class="preview">Does not segregate with disease …</span>
+                </button>
+              </td>
+
+              <td></td>
+
+              <td>
+                <button class="cell" data-strength="PP" data-code="PP1" data-theme="pp"
+                  data-row="Segregation" data-col="Supporting"
+                  data-text="PP1: Co-segregation with disease in multiple affected family members in a gene definitively known to cause the disease.
+Note: May be used as stronger evidence with increasing segregation data
+                  ">
+                  <span class="tag pp"><span class="dot"></span>PP1</span>
+                  <span class="preview">Variant co-segregates with disease in family …</span>
+                </button>
+              </td>
+
+              <td></td><td></td><td></td>
+            </tr>
+
+            <tr>
+              <th>De novo</th>
+
+              <td></td>
+
+              <td></td>
+
+              <td></td>
+
+              <td></td>
+              <td>
+                <button class="cell" data-strength="PM" data-code="PM6" data-theme="pm"
+                  data-row="De novo" data-col="Moderate"
+                  data-text="PM6: Assumed de novo (without confirmation of paternity/maternity) in a patient with the disease and no family history.">
+                  <span class="tag pm"><span class="dot"></span>PM6</span>
+                  <span class="preview">De novo (without paternity & maternity)…</span>
+                </button>
+              </td>
+              <td>
+                  <button class="cell" data-strength="PS" data-code="PS2" data-theme="ps"
+                  data-row="De novo" data-col="Strong"
+                  data-text="PS2: De novo (both maternity and paternity confirmed) in a patient with the disease and no family history.">
+                  <span class="tag ps"><span class="dot"></span>PS2</span>
+                  <span class="preview">De novo (paternity and maternity confirmed)…</span>
+                </button>
+              </td>
+              <td></td>
+            </tr>
+
+            <tr>
+              <th>Allelic data</th>
+
+              <td></td>
+
+              <td></td>
+
+              <td>
+                <button class="cell" data-strength="BP" data-code="BP2" data-theme="bp"
+                  data-row="Allelic data" data-col="Supporting (Benign)"
+                  data-text="BP2: For a fully penetrant dominant disorder, if a variant in observed to be in trans with a (likely) pathogenic variant in an affected individual.">
+                  <span class="tag bp"><span class="dot"></span>BP2</span>
+                  <span class="preview">Observed in trans with a dominant variant…</span>
+                </button>
+                <button class="cell" data-strength="BP" data-code="BP2" data-theme="bp"
+                  data-row="Allelic data" data-col="Supporting (Benign)"
+                  data-text="BP2: For a recessive condition, if a variant is in cis with a known (likely) pathogenic variant, rather than in trans, in an affected individual.">
+                  <span class="tag bp"><span class="dot"></span>BP2</span>
+                  <span class="preview">Observed in cis with a pathogenic variant…</span>
+                </button>
+              </td>
+
+              <td></td>
+
+              <td>
+                <button class="cell" data-strength="PM" data-code="PM3" data-theme="pm"
+                  data-row="Allelic data" data-col="Moderate"
+                  data-text="PM3: For recessive disorders, detected in trans with a pathogenic variant.">
+                  <span class="tag pm"><span class="dot"></span>PM3</span>
+                  <span class="preview">For recessive disorders, detected in trans with a pathogenic variant…</span>
+                </button>
+              </td>
+
+              <td></td><td></td>
+            </tr>
+            <tr>
+              <th>Other database</th>
+
+              <td></td>
+
+              <td>
+              </td>
+
+              <td>
+                <button class="cell" data-strength="BP" data-code="BP6" data-theme="bp"
+                  data-row="Other database" data-col="Supporting"
+                  data-text="BP6: Reputable source recently reports variant as benign, but the evidence is not available to the laboratory to perform an independent evaluation">
+                  <span class="tag bp"><span class="dot"></span>BP6</span>
+                  <span class="preview">Reputable source w/out shared data (no longer is used)…</span>
+                </button>
+              </td>
+
+              <td>
+                <button class="cell" data-strength="PP" data-code="PP5" data-theme="pp"
+                  data-row="Other database" data-col="Supporting"
+                  data-text="PP5: Reputable source recently reports variant as pathogenic, but the evidence is not available to the laboratory to perform an independent evaluation">
+                  <span class="tag pp"><span class="dot"></span>PP5</span>
+                  <span class="preview">Reputable source (no longer is used)…</span>
+                </button>
+              </td>
+              <td></td><td></td><td></td>
+            </tr>
+            <tr>
+              <th>Other data</th>
+
+              <td></td>
+
+              <td>
+              </td>
+
+              <td>
+                <button class="cell" data-strength="BP" data-code="BP5" data-theme="bp"
+                  data-row="Other data" data-col="Supporting"
+                  data-text="BP5: Variant found in a case with an alternate molecular basis for disease.">
+                  <span class="tag bp"><span class="dot"></span>BP5</span>
+                  <span class="preview">Found in case with an alternate cause.</span>
+                </button>
+              </td>
+
+              <td>
+                <button class="cell" data-strength="PP" data-code="PP4" data-theme="pp"
+                  data-row="Other data" data-col="Supporting"
+                  data-text="PP4: Patient’s phenotype or family history is highly specific for a disease with a single genetic etiology.">
+                  <span class="tag pp"><span class="dot"></span>PP4</span>
+                  <span class="preview">Phenotype highly specific for this gene…</span>
+                </button>
+              </td>
+              <td></td><td></td><td></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="hint">
+        Replace the sample ACMG codes/text with your exact table content. Each clickable square is a <code>&lt;button class="cell"&gt;</code>
+        containing <code>data-*</code> attributes used by the popup.
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-backdrop" id="backdrop" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal" role="document" aria-labelledby="mTitle">
+      <div class="modal-head">
+        <div>
+          <h2 class="modal-title" id="mTitle">Cell details</h2>
+          <div class="meta" id="mMeta"></div>
+        </div>
+        <button class="close" id="closeBtn" type="button" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="big-tag" id="mTag"><span class="dot"></span><span id="mCode">CODE</span></div>
+        <p class="fulltext" id="mText"></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const backdrop = document.getElementById('backdrop');
+    const closeBtn = document.getElementById('closeBtn');
+
+    const mTitle = document.getElementById('mTitle');
+    const mMeta  = document.getElementById('mMeta');
+    const mTag   = document.getElementById('mTag');
+    const mCode  = document.getElementById('mCode');
+    const mText  = document.getElementById('mText');
+
+    let lastFocused = null;
+
+    function openModal(fromBtn){
+      lastFocused = fromBtn;
+
+      const code = fromBtn.dataset.code || '—';
+      const strength = fromBtn.dataset.strength || '';
+      const theme = fromBtn.dataset.theme || '';
+      const row = fromBtn.dataset.row || '';
+      const col = fromBtn.dataset.col || '';
+      const text = fromBtn.dataset.text || fromBtn.innerText;
+
+      // Title + meta
+      mTitle.textContent = `${code} (${strength})`;
+      mMeta.textContent = `${row} • ${col}`;
+
+      // Tag styling
+      mTag.className = 'big-tag ' + theme;
+      mTag.querySelector('.dot').style.background = 'currentColor';
+      mCode.textContent = code;
+
+      // Body text
+      mText.textContent = text;
+
+      backdrop.classList.add('open');
+      backdrop.setAttribute('aria-hidden', 'false');
+      closeBtn.focus();
+    }
+
+    function closeModal(){
+      backdrop.classList.remove('open');
+      backdrop.setAttribute('aria-hidden', 'true');
+      if(lastFocused) lastFocused.focus();
+    }
+
+    // Click any cell
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.cell');
+      if(btn){
+        openModal(btn);
+        return;
+      }
+
+      // Click outside modal closes
+      if(e.target === backdrop){
+        closeModal();
+      }
+    });
+
+    closeBtn.addEventListener('click', closeModal);
+
+    // ESC to close
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Escape' && backdrop.classList.contains('open')){
+        closeModal();
+      }
+    });
+  </script>
+</body>
+</html>
